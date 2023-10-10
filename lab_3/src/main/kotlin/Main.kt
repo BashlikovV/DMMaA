@@ -7,11 +7,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import org.jetbrains.skia.Bitmap
+import org.jetbrains.skiko.toBufferedImage
 import org.jetbrains.skiko.toImage
 import org.jfree.chart.ChartFactory
 import org.jfree.chart.ChartUtils
@@ -47,25 +48,16 @@ fun main() = application {
     var y2Values = doubleArrayOf()
     var areas = 0.0 to 0.0
     LaunchedEffect(firstVector, secondVector) {
-        // Создание функций плотности вероятности на основе сгенерированных векторов и вероятностей.
         val firstFunction = generateProbabilityDensityFunction(
             firstVector.mean(), firstVector.standardDeviation(), PROBABILITY_1
         )
         val secondFunction = generateProbabilityDensityFunction(
             secondVector.mean(), secondVector.standardDeviation(), PROBABILITY_2
         )
-
-        // Определение интервала значений X на основе объединения обоих векторов.
         val interval = getInterval(firstVector, secondVector)
-
-        // Генерация значений X с заданным шагом.
         xValues = doubleArrayFromRange(interval.first, interval.second, STEP)
-
-        // Вычисление значений Y для обеих функций на основе X.
         y1Values = xValues.map(firstFunction).toDoubleArray()
         y2Values = xValues.map(secondFunction).toDoubleArray()
-
-        // Нахождение места пересечения колоколов вероятности
         val firstIsBigger = y1Values[0] > y2Values[0]
         var separatorI = 0
         for (i in xValues.indices) {
@@ -77,8 +69,6 @@ fun main() = application {
                 break
             }
         }
-
-        // Вычисление областей под кривыми и отрисовка графика с информацией о долях ошибок.
         areas = getAreas(y1Values, y2Values, STEP, xValues, separatorI)
         draw(xValues, y1Values, y2Values, areas)
     }
@@ -88,7 +78,7 @@ fun main() = application {
         val f = File("/home/bashlikovvv/Bsuir/DmMaA/lab_3/src/main/resources/clustering-mistake-${String.format(Locale.ROOT, "%.1f", PROBABILITY_1)}.jpg")
         if (f.exists()) {
             val image = ImageIO.read(f)
-            bitmap = Bitmap.makeFromImage(image.toImage()).asImageBitmap()
+            bitmap = Bitmap.makeFromImage(image.toImage()).toBufferedImage().toComposeImageBitmap()
         }
     }
 
@@ -127,7 +117,6 @@ fun draw(xValues: DoubleArray, y1Values: DoubleArray, y2Values: DoubleArray, are
     val series1 = XYSeries("First Function")
     val series2 = XYSeries("Second Function")
 
-    // Заполнение данных для первой и второй функции.
     for (i in xValues.indices) {
         series1.add(xValues[i], y1Values[i])
         series2.add(xValues[i], y2Values[i])
@@ -136,12 +125,10 @@ fun draw(xValues: DoubleArray, y1Values: DoubleArray, y2Values: DoubleArray, are
     dataset.addSeries(series1)
     dataset.addSeries(series2)
 
-    // Создание графика с заданными параметрами.
     val chart = ChartFactory.createXYAreaChart(
         "Probabilistic Classification", "X", "Y", dataset, PlotOrientation.VERTICAL, true, false, false
     )
 
-    // Добавление подзаголовков с информацией о доле ошибок.
     chart.addSubtitle(TextTitle("Detection mistake: ${String.format("%.3f", areas.first * 100)}%"))
     chart.addSubtitle(TextTitle("False positive: ${String.format("%.3f", areas.second * 100)}%"))
     chart.addSubtitle(TextTitle("Summary mistake: ${String.format("%.3f", (areas.first + areas.second) * 100)}%"))
@@ -151,7 +138,6 @@ fun draw(xValues: DoubleArray, y1Values: DoubleArray, y2Values: DoubleArray, are
         file.createNewFile()
     }
 
-    // Сохранение графика как изображения PNG.
     ChartUtils.saveChartAsPNG(
         File("/home/bashlikovvv/Bsuir/DmMaA/lab_3/src/main/resources/clustering-mistake-${String.format(Locale.ROOT, "%.1f", PROBABILITY_1)}.jpg"), chart, 800, 500
     )

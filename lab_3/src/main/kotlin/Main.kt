@@ -112,7 +112,6 @@ fun main() = application {
 }
 
 fun draw(xValues: DoubleArray, y1Values: DoubleArray, y2Values: DoubleArray, areas: Pair<Double, Double>) {
-    // Создание набора данных для графика.
     val dataset = XYSeriesCollection()
     val series1 = XYSeries("First Function")
     val series2 = XYSeries("Second Function")
